@@ -490,6 +490,9 @@ def _facade() -> Any:
 logger = logging.getLogger(__name__)
 
 _WEBSOCKET_PINNED_REFRESH_UNAVAILABLE_MESSAGE = "Account refresh is temporarily unavailable; retry later."
+# Scope teardown coordinates several request/lease finalizers; keep its normal
+# observation budget separate from the short generic child-task cancel bound.
+_WEBSOCKET_SCOPE_CLEANUP_TIMEOUT_SECONDS = 5.0
 _CAPABILITY_REQUIRED_NO_AUTHORIZED_ACCOUNTS_MESSAGE = (
     "This request requires Trusted Access for Cyber, but no eligible account is marked as "
     "security-work-authorized. codex-lb did not fall back to an ordinary account."
@@ -783,6 +786,57 @@ def _track_websocket_owned_task(
             _done_task.exception()
 
     task.add_done_callback(_discard_owned_task)
+
+
+_WEBSOCKET_UPSTREAM_CLOSE_CLEANUP_TIMEOUT_SECONDS = 0.25
+
+
+async def _close_websocket_upstream_for_cleanup(
+    proxy: _WebSocketServiceProtocol,
+    upstream: UpstreamWebSocket,
+    *,
+    timeout_seconds: float,
+) -> None:
+    """Close an upstream socket without letting a stuck close block cleanup.
+
+    The close remains tracked so scope finalization can release request ownership
+    and leases inside its bounded cleanup budget even if close handshaking stalls.
+    """
+
+    close_task = asyncio.create_task(
+        upstream.close(),
+        name="proxy-websocket-upstream-close",
+    )
+    _track_websocket_owned_task(proxy, close_task)
+    effective_timeout = min(
+        max(float(timeout_seconds), 0.0),
+        _WEBSOCKET_UPSTREAM_CLOSE_CLEANUP_TIMEOUT_SECONDS,
+    )
+
+    async def cancel_close_task() -> None:
+        try:
+            await _facade()._await_cancelled_task(
+                close_task,
+                timeout_seconds=effective_timeout,
+                label="proxy websocket upstream close",
+                cleanup_tasks=proxy._background_cleanup_tasks,
+            )
+        except Exception:
+            _facade().logger.debug("Failed to cancel upstream websocket close task", exc_info=True)
+
+    if effective_timeout <= 0:
+        await cancel_close_task()
+        return
+    try:
+        await asyncio.wait_for(asyncio.shield(close_task), timeout=effective_timeout)
+    except TimeoutError:
+        _facade().logger.debug(
+            "Upstream websocket close continued after cleanup budget timeout_seconds=%.3f",
+            effective_timeout,
+        )
+        await cancel_close_task()
+    except Exception:
+        _facade().logger.debug("Failed to close upstream websocket during scope cleanup", exc_info=True)
 
 
 async def _await_owned_websocket_task_after_reader_cancellation(
@@ -2453,9 +2507,15 @@ class _WebSocketMixin:
             scope_cancelled = True
             raise
         finally:
-            cleanup_timeout = shutdown_state.remaining_drain_timeout_seconds()
-            if cleanup_timeout is None:
-                cleanup_timeout = _facade()._TASK_CANCEL_TIMEOUT_SECONDS
+            remaining_drain_timeout = shutdown_state.remaining_drain_timeout_seconds()
+            cleanup_timeout = (
+                _WEBSOCKET_SCOPE_CLEANUP_TIMEOUT_SECONDS
+                if remaining_drain_timeout is None
+                else max(float(remaining_drain_timeout), 0.0)
+            )
+            task_cleanup_timeout = (
+                _facade()._TASK_CANCEL_TIMEOUT_SECONDS if remaining_drain_timeout is None else cleanup_timeout
+            )
 
             async def finalize_websocket_scope() -> None:
                 nonlocal replay_request_state
@@ -2470,10 +2530,11 @@ class _WebSocketMixin:
                     # release that wait.
                     reader_to_await.cancel()
                 if upstream is not None:
-                    try:
-                        await upstream.close()
-                    except Exception:
-                        _facade().logger.debug("Failed to close upstream websocket", exc_info=True)
+                    await _close_websocket_upstream_for_cleanup(
+                        proxy,
+                        upstream,
+                        timeout_seconds=task_cleanup_timeout,
+                    )
                 if reader_to_await is not None:
                     try:
                         await _facade()._await_cancelled_task(
@@ -2493,7 +2554,7 @@ class _WebSocketMixin:
                     try:
                         await _facade()._await_cancelled_task(
                             retired_create_lease_release_task,
-                            timeout_seconds=cleanup_timeout,
+                            timeout_seconds=task_cleanup_timeout,
                             label="proxy websocket retired create lease release",
                             cancel=False,
                         )
@@ -2507,7 +2568,7 @@ class _WebSocketMixin:
                     try:
                         await _facade()._await_cancelled_task(
                             request_state_failure_task,
-                            timeout_seconds=cleanup_timeout,
+                            timeout_seconds=task_cleanup_timeout,
                             label="proxy websocket unsent request finalization",
                             cancel=False,
                         )
@@ -2609,7 +2670,12 @@ class _WebSocketMixin:
                 timeout=max(float(cleanup_timeout), 0.0),
             )
             if not done:
-                _facade().logger.warning("Websocket scope cleanup exceeded its remaining drain budget")
+                _facade().logger.warning(
+                    "Websocket scope cleanup exceeded its cleanup budget "
+                    "timeout_seconds=%.3f background_cleanup_tasks=%d",
+                    max(float(cleanup_timeout), 0.0),
+                    sum(1 for task in proxy._background_cleanup_tasks if not task.done()),
+                )
 
     async def _prepare_websocket_response_create_request(
         self,

@@ -6,6 +6,21 @@
 - GitHub auth for git/API is available via env vars: `GITHUB_USER`, `GITHUB_TOKEN` (PAT). Do not hardcode or commit tokens.
 - For authenticated git over HTTPS in automation, use: `https://x-access-token:${GITHUB_TOKEN}@github.com/<owner>/<repo>.git`
 
+## Mhoo operational boundary
+
+`codex-lb` owns application and provider-routing source, not its live
+deployment authority. The sibling `../infrastructure` repository owns VPS
+deployment, private networking, recovery/rollback custody, provider-facing operational evidence,
+and production cutover. Editing this repository, passing tests, or publishing a
+build does not authorize a deployment, client-route change, credential change,
+or cutover. Those live effects require explicit authorization and the
+infrastructure evidence for the exact target.
+
+For Mhoo-wide authority, tenancy, connector, or ownership changes, use an
+accepted ADR in `../mhoo/ADR/`; keep this repository's behavior requirements
+under the OpenSpec workflow below. This supplements rather than replaces the existing
+OpenSpec, merge-gate, migration, compatibility, and regression rules.
+
 ## Code Conventions
 
 The `/project-conventions` skill is auto-activated on code edits (PreToolUse guard).

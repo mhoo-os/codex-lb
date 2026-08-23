@@ -2541,6 +2541,7 @@ class _WebSocketMixin:
                             reader_to_await,
                             label="proxy websocket upstream reader",
                             cancel=False,
+                            cleanup_tasks=proxy._background_cleanup_tasks,
                         )
                     except Exception:
                         # Reader failure must not skip lease release or the

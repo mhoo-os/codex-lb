@@ -51,6 +51,10 @@ This repo uses **OpenSpec as the primary workflow and SSOT** for change-driven d
 
 ## Documentation & Release Notes
 
+- Do not manually edit a generated Mhoo context block. Run the central checker
+  for Mhoo context changes. Upstream product and contributor content outside
+  the bounded notice remains upstream-owned; Mhoo operational claims require
+  Infrastructure evidence.
 - **OpenSpec is the SSOT for feature/behavior documentation.** User-facing rendering lives under `docs/` (the published docs pages), and each spec-governed page MUST link back to the owning `openspec/specs/<capability>/` entry. Do not create `docs/` content that has no OpenSpec counterpart, and do not add feature docs as new README sections. Keep normative requirements in `openspec/specs/<capability>/spec.md` and free-form rationale in the capability's `context.md` (or change-level context under `openspec/changes/<change>/context.md`).
 - **Do not edit `CHANGELOG.md` directly.** Leave changelog updates to the release process; record change notes in OpenSpec artifacts instead.
 

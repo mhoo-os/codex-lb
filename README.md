@@ -1,3 +1,17 @@
+<!-- mhoo-os-context:start -->
+### Codex-LB for Mhoo: Mhoo OS context
+
+This repository is the model-routing and gateway source used by Mhoo.
+
+- **Owns:** model request routing; gateway behavior.
+- **Does not own:** model or agent reasoning; business state or Core knowledge; Workspace or connector authority; deployment and cutover authority.
+- **Architecture authority:** [accepted Mhoo OS blueprint](https://github.com/mhoo-os/mhoo/blob/1374bbbe2a059320c29c8268ff971efbd9dfa256/docs/architecture/SYSTEM_BLUEPRINT.md) and [ADR-0006](https://github.com/mhoo-os/mhoo/blob/1374bbbe2a059320c29c8268ff971efbd9dfa256/ADR/0006-mhoo-os-system-architecture-blueprint.md).
+- **Current implementation evidence:** [repository-owned source and records](https://github.com/mhoo-os/codex-lb/tree/main/app).
+- **Deployment and production evidence:** owned separately by [Mhoo OS Infrastructure](https://github.com/mhoo-os/infrastructure/tree/main/docs); source, CI, publication, and rehearsal are not deployment or cutover proof.
+- **Upstream context:** Mhoo-maintained derived repository; upstream product usage, attribution, and contributor documentation continue below the notice.
+- **Contributors:** start with the [repository instructions](https://github.com/mhoo-os/codex-lb/blob/main/AGENTS.md). Generated context is governed by [README governance](https://github.com/mhoo-os/mhoo/blob/main/docs/architecture/README_GOVERNANCE.md).
+<!-- mhoo-os-context:end -->
+
 <!--
 About
 Codex/ChatGPT account load balancer & proxy with usage tracking, dashboard, and OpenCode-compatible endpoints

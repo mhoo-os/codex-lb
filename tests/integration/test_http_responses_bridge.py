@@ -796,10 +796,27 @@ class _AnonymousPreviousResponseNotFoundWithInflightUpstreamWebSocket(_FakeBridg
 
 
 class _InvalidRequestPreviousResponseUpstreamWebSocket(_FakeBridgeUpstreamWebSocket):
+    def __init__(self, *, parameterless: bool) -> None:
+        super().__init__()
+        self._parameterless = parameterless
+
     async def send_text(self, text: str) -> None:
         self.sent_text.append(text)
         payload = json.loads(text)
         previous_response_id = payload.get("previous_response_id")
+        error = (
+            {
+                "type": "invalid_request_error",
+                "message": "Invalid `previous_response_id`.",
+            }
+            if self._parameterless
+            else {
+                "type": "invalid_request_error",
+                "code": "invalid_request_error",
+                "message": f"Previous response with id '{previous_response_id}' not found.",
+                "param": "previous_response_id",
+            }
+        )
         await self._messages.put(
             _FakeUpstreamMessage(
                 "text",
@@ -807,12 +824,7 @@ class _InvalidRequestPreviousResponseUpstreamWebSocket(_FakeBridgeUpstreamWebSoc
                     {
                         "type": "error",
                         "status": 400,
-                        "error": {
-                            "type": "invalid_request_error",
-                            "code": "invalid_request_error",
-                            "message": f"Previous response with id '{previous_response_id}' not found.",
-                            "param": "previous_response_id",
-                        },
+                        "error": error,
                     },
                     separators=(",", ":"),
                 ),
@@ -13142,16 +13154,23 @@ async def test_v1_responses_http_bridge_rebinds_after_upstream_previous_response
 
 
 @pytest.mark.asyncio
-async def test_v1_responses_http_bridge_rebinds_after_upstream_invalid_request_previous_response_not_found_param(
+@pytest.mark.parametrize(
+    "parameterless",
+    [False, True],
+    ids=["named-previous-response-param", "parameterless-invalid-id"],
+)
+async def test_v1_responses_http_bridge_rebinds_after_upstream_invalid_previous_response_error(
     async_client,
     app_instance,
     monkeypatch,
+    parameterless,
 ):
     _install_bridge_settings(monkeypatch, enabled=True)
+    case = "parameterless" if parameterless else "named-param"
     account_id = await _import_account(
         async_client,
-        "acc_http_bridge_invalid_request_rebind",
-        "http-bridge-invalid-request-rebind@example.com",
+        f"acc_http_bridge_invalid_rebind_{case}",
+        f"http-bridge-invalid-rebind-{case}@example.com",
     )
     account = await _get_account(account_id)
     first_upstream = _FakeBridgeUpstreamWebSocket()
@@ -13226,7 +13245,7 @@ async def test_v1_responses_http_bridge_rebinds_after_upstream_invalid_request_p
             "model": "gpt-5.1",
             "instructions": "Return exactly OK.",
             "input": "hello",
-            "prompt_cache_key": "invalid-request-rebind",
+            "prompt_cache_key": f"invalid-request-rebind-{case}",
         },
     )
     assert first.status_code == 200
@@ -13238,7 +13257,10 @@ async def test_v1_responses_http_bridge_rebinds_after_upstream_invalid_request_p
         await _replace_http_bridge_upstream_reader(
             service,
             session,
-            cast(proxy_module.UpstreamWebSocket, _InvalidRequestPreviousResponseUpstreamWebSocket()),
+            cast(
+                proxy_module.UpstreamWebSocket,
+                _InvalidRequestPreviousResponseUpstreamWebSocket(parameterless=parameterless),
+            ),
         )
 
     second = await async_client.post(
@@ -13247,7 +13269,7 @@ async def test_v1_responses_http_bridge_rebinds_after_upstream_invalid_request_p
             "model": "gpt-5.1",
             "instructions": "Return exactly OK.",
             "input": "hello-again",
-            "prompt_cache_key": "invalid-request-rebind",
+            "prompt_cache_key": f"invalid-request-rebind-{case}",
             "previous_response_id": first_body["id"],
         },
     )

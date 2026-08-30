@@ -42,6 +42,8 @@ def _to_response(row: ApiKeyData) -> ApiKeyResponse:
         id=row.id,
         name=row.name,
         key_prefix=row.key_prefix,
+        twenty_workspace_id=row.twenty_workspace_id,
+        twenty_workspace_name=row.twenty_workspace_name,
         allowed_models=row.allowed_models,
         apply_to_codex_model=row.apply_to_codex_model,
         enforced_model=row.enforced_model,
@@ -132,6 +134,8 @@ async def create_api_key(
             ApiKeyCreateData(
                 name=payload.name,
                 allowed_models=payload.allowed_models,
+                twenty_workspace_id=payload.twenty_workspace_id,
+                twenty_workspace_name=payload.twenty_workspace_name,
                 apply_to_codex_model=payload.apply_to_codex_model,
                 enforced_model=payload.enforced_model,
                 enforced_reasoning_effort=payload.enforced_reasoning_effort,
@@ -187,6 +191,10 @@ async def update_api_key(
     update = ApiKeyUpdateData(
         name=payload.name,
         name_set="name" in fields,
+        twenty_workspace_id=payload.twenty_workspace_id,
+        twenty_workspace_id_set="twenty_workspace_id" in fields,
+        twenty_workspace_name=payload.twenty_workspace_name,
+        twenty_workspace_name_set="twenty_workspace_name" in fields,
         allowed_models=payload.allowed_models,
         allowed_models_set="allowed_models" in fields,
         apply_to_codex_model=payload.apply_to_codex_model,

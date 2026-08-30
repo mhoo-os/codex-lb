@@ -1093,11 +1093,16 @@ class ApiFirewallAllowlist(Base):
 
 class ApiKey(Base):
     __tablename__ = "api_keys"
+    __table_args__ = (UniqueConstraint("twenty_workspace_id", name="uq_api_keys_twenty_workspace_id"),)
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
     key_hash: Mapped[str] = mapped_column(String, nullable=False, unique=True)
     key_prefix: Mapped[str] = mapped_column(String, nullable=False)
+    # Optional attribution for the dedicated key issued to a Twenty Workspace.
+    # This is never an authorization input; Twenty remains the Workspace authority.
+    twenty_workspace_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    twenty_workspace_name: Mapped[str | None] = mapped_column(String(128), nullable=True)
     allowed_models: Mapped[str | None] = mapped_column(Text, nullable=True)
     apply_to_codex_model: Mapped[bool] = mapped_column(
         Boolean,

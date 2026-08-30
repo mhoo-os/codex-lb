@@ -710,6 +710,57 @@ async def test_run_startup_migrations_drops_accounts_email_unique_with_non_casca
 
 
 @pytest.mark.asyncio
+async def test_twenty_workspace_api_key_binding_migration_upgrade_and_downgrade(tmp_path):
+    from alembic import command
+
+    from app.db.migrate import _build_alembic_config
+
+    db_url = f"sqlite+aiosqlite:///{tmp_path / 'twenty-workspace-binding.sqlite'}"
+    parent_revision = "20260806_120000_add_http_bridge_owner_process_epoch"
+    binding_revision = "20260830_000000_add_twenty_workspace_api_key_binding"
+
+    async def _schema_state(engine) -> tuple[set[str], bool]:
+        async with engine.connect() as conn:
+            columns = {row[1] for row in await conn.execute(text("PRAGMA table_info('api_keys')"))}
+            indexes = list(await conn.execute(text("PRAGMA index_list('api_keys')")))
+            has_unique_workspace_index = False
+            for index in indexes:
+                if not bool(index[2]):
+                    continue
+                index_columns = {
+                    row[2]
+                    for row in await conn.execute(
+                        text(f"PRAGMA index_info('{index[1]}')")  # noqa: S608 - SQLite metadata name
+                    )
+                }
+                if index_columns == {"twenty_workspace_id"}:
+                    has_unique_workspace_index = True
+            return columns, has_unique_workspace_index
+
+    await to_thread.run_sync(lambda: run_upgrade(db_url, parent_revision, bootstrap_legacy=False))
+    engine = create_async_engine(db_url, future=True)
+    try:
+        columns, has_unique_workspace_index = await _schema_state(engine)
+        assert "twenty_workspace_id" not in columns
+        assert "twenty_workspace_name" not in columns
+        assert not has_unique_workspace_index
+
+        await to_thread.run_sync(lambda: run_upgrade(db_url, binding_revision, bootstrap_legacy=False))
+        columns, has_unique_workspace_index = await _schema_state(engine)
+        assert "twenty_workspace_id" in columns
+        assert "twenty_workspace_name" in columns
+        assert has_unique_workspace_index
+
+        await to_thread.run_sync(lambda: command.downgrade(_build_alembic_config(db_url), parent_revision))
+        columns, has_unique_workspace_index = await _schema_state(engine)
+        assert "twenty_workspace_id" not in columns
+        assert "twenty_workspace_name" not in columns
+        assert not has_unique_workspace_index
+    finally:
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
 async def test_dashboard_settings_default_flip_migration_does_not_infer_intent_from_updated_at(tmp_path):
     db_url = f"sqlite+aiosqlite:///{tmp_path / 'dashboard-settings-defaults.sqlite'}"
     base_revision = "20260408_010000_merge_import_without_overwrite_and_assignment_heads"

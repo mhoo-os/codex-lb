@@ -26,6 +26,8 @@ class LimitRuleResponse(DashboardModel):
 
 class ApiKeyCreateRequest(DashboardModel):
     name: str = Field(min_length=1, max_length=128)
+    twenty_workspace_id: str | None = Field(default=None, min_length=1, max_length=128)
+    twenty_workspace_name: str | None = Field(default=None, min_length=1, max_length=128)
     allowed_models: list[str] | None = None
     apply_to_codex_model: bool = False
     enforced_model: str | None = Field(default=None, min_length=1)
@@ -45,6 +47,8 @@ class ApiKeyCreateRequest(DashboardModel):
 
 class ApiKeyUpdateRequest(DashboardModel):
     name: str | None = Field(default=None, min_length=1, max_length=128)
+    twenty_workspace_id: str | None = Field(default=None, min_length=1, max_length=128)
+    twenty_workspace_name: str | None = Field(default=None, min_length=1, max_length=128)
     allowed_models: list[str] | None = None
     apply_to_codex_model: bool | None = None
     enforced_model: str | None = Field(default=None, min_length=1)
@@ -75,6 +79,8 @@ class ApiKeyResponse(DashboardModel):
     id: str
     name: str
     key_prefix: str
+    twenty_workspace_id: str | None = None
+    twenty_workspace_name: str | None = None
     allowed_models: list[str] | None
     apply_to_codex_model: bool = False
     enforced_model: str | None

@@ -11,7 +11,7 @@ from hashlib import sha256
 from math import ceil
 from typing import Protocol
 
-from sqlalchemy.exc import OperationalError
+from sqlalchemy.exc import IntegrityError, OperationalError
 
 from app.core.auth.api_key_cache import get_api_key_cache
 from app.core.cache.invalidation import NAMESPACE_API_KEY, get_cache_invalidation_poller
@@ -267,6 +267,8 @@ class LimitRuleInput:
 class ApiKeyCreateData:
     name: str
     allowed_models: list[str] | None
+    twenty_workspace_id: str | None = None
+    twenty_workspace_name: str | None = None
     apply_to_codex_model: bool = False
     enforced_model: str | None = None
     enforced_reasoning_effort: str | None = None
@@ -284,6 +286,10 @@ class ApiKeyCreateData:
 class ApiKeyUpdateData:
     name: str | None = None
     name_set: bool = False
+    twenty_workspace_id: str | None = None
+    twenty_workspace_id_set: bool = False
+    twenty_workspace_name: str | None = None
+    twenty_workspace_name_set: bool = False
     allowed_models: list[str] | None = None
     allowed_models_set: bool = False
     apply_to_codex_model: bool | None = None
@@ -326,6 +332,8 @@ class ApiKeyData:
     is_active: bool
     created_at: datetime
     last_used_at: datetime | None
+    twenty_workspace_id: str | None = None
+    twenty_workspace_name: str | None = None
     apply_to_codex_model: bool = False
     traffic_class: str = TRAFFIC_CLASS_FOREGROUND
     transport_policy_override: str | None = None
@@ -472,12 +480,24 @@ class ApiKeysService:
         traffic_class = _normalize_traffic_class(payload.traffic_class)
         transport_policy_override = _normalize_transport_policy_override(payload.transport_policy_override)
         usage_sections = _normalize_usage_sections(payload.usage_sections)
+        twenty_workspace_id = _normalize_twenty_workspace_value("twenty_workspace_id", payload.twenty_workspace_id)
+        twenty_workspace_name = _normalize_twenty_workspace_value(
+            "twenty_workspace_name", payload.twenty_workspace_name
+        )
+        if twenty_workspace_id is None and twenty_workspace_name is not None:
+            raise ApiKeyValidationError("twenty_workspace_name requires twenty_workspace_id")
+        if twenty_workspace_id is not None:
+            existing_binding = await self._find_twenty_workspace_binding(twenty_workspace_id)
+            if existing_binding is not None:
+                raise ApiKeyValidationError("Twenty Workspace is already bound to an API key")
         _validate_model_enforcement(enforced_model=enforced_model, allowed_models=normalized_allowed_models)
         row = ApiKey(
             id=str(__import__("uuid").uuid4()),
             name=_normalize_name(payload.name),
             key_hash=_hash_key(plain_key),
             key_prefix=plain_key[:15],
+            twenty_workspace_id=twenty_workspace_id,
+            twenty_workspace_name=twenty_workspace_name,
             allowed_models=_serialize_allowed_models(normalized_allowed_models),
             apply_to_codex_model=bool(payload.apply_to_codex_model),
             enforced_model=enforced_model,
@@ -506,6 +526,11 @@ class ApiKeysService:
                 await self._repository.upsert_limits(created.id, limit_rows, commit=False)
 
             await self._repository.commit()
+        except IntegrityError as exc:
+            await self._repository.rollback()
+            if _is_twenty_workspace_unique_violation(exc):
+                raise ApiKeyValidationError("Twenty Workspace is already bound to an API key") from exc
+            raise
         except Exception:
             await self._repository.rollback()
             raise
@@ -570,6 +595,29 @@ class ApiKeysService:
         existing = await self._repository.get_by_id(key_id)
         if existing is None:
             raise ApiKeyNotFoundError(f"API key not found: {key_id}")
+
+        twenty_workspace_id_update: str | None | _Unset = _UNSET
+        if payload.twenty_workspace_id_set:
+            twenty_workspace_id_update = _normalize_twenty_workspace_value(
+                "twenty_workspace_id", payload.twenty_workspace_id
+            )
+            if twenty_workspace_id_update is not None:
+                existing_binding = await self._find_twenty_workspace_binding(twenty_workspace_id_update)
+                if existing_binding is not None and existing_binding.id != key_id:
+                    raise ApiKeyValidationError("Twenty Workspace is already bound to an API key")
+        twenty_workspace_name_update: str | None | _Unset = _UNSET
+        if payload.twenty_workspace_name_set:
+            twenty_workspace_name_update = _normalize_twenty_workspace_value(
+                "twenty_workspace_name", payload.twenty_workspace_name
+            )
+        effective_twenty_workspace_id = (
+            existing.twenty_workspace_id if twenty_workspace_id_update is _UNSET else twenty_workspace_id_update
+        )
+        effective_twenty_workspace_name = (
+            existing.twenty_workspace_name if twenty_workspace_name_update is _UNSET else twenty_workspace_name_update
+        )
+        if effective_twenty_workspace_id is None and effective_twenty_workspace_name is not None:
+            raise ApiKeyValidationError("twenty_workspace_name requires twenty_workspace_id")
 
         if payload.allowed_models_set:
             allowed_models = _normalize_allowed_models(payload.allowed_models)
@@ -653,6 +701,10 @@ class ApiKeysService:
             limit_rows = _build_reset_limit_rows(key_id=key_id, now=now, existing_limits=existing_limits)
 
         try:
+            if twenty_workspace_id_update is not _UNSET:
+                existing.twenty_workspace_id = twenty_workspace_id_update
+            if twenty_workspace_name_update is not _UNSET:
+                existing.twenty_workspace_name = twenty_workspace_name_update
             row = await self._repository.update(
                 key_id,
                 name=_normalize_name(payload.name or "") if payload.name_set else _UNSET,
@@ -686,6 +738,11 @@ class ApiKeysService:
                 await self._repository.upsert_limits(key_id, limit_rows, commit=False)
 
             await self._repository.commit()
+        except IntegrityError as exc:
+            await self._repository.rollback()
+            if _is_twenty_workspace_unique_violation(exc):
+                raise ApiKeyValidationError("Twenty Workspace is already bound to an API key") from exc
+            raise
         except Exception:
             await self._repository.rollback()
             raise
@@ -695,6 +752,8 @@ class ApiKeysService:
             or payload.assigned_source_ids_set
             or limit_rows is not None
             or payload.name_set
+            or payload.twenty_workspace_id_set
+            or payload.twenty_workspace_name_set
             or payload.allowed_models_set
             or payload.apply_to_codex_model_set
             or payload.enforced_model_set
@@ -715,6 +774,13 @@ class ApiKeysService:
         if poller is not None:
             await poller.bump(NAMESPACE_API_KEY)
         return _to_api_key_data(row)
+
+    async def _find_twenty_workspace_binding(self, workspace_id: str) -> ApiKey | None:
+        rows = await self._repository.list_all()
+        return next(
+            (row for row in rows if getattr(row, "twenty_workspace_id", None) == workspace_id),
+            None,
+        )
 
     async def _resolve_assigned_account_ids(self, account_ids: list[str] | None) -> list[str]:
         normalized_account_ids = _normalize_assigned_account_ids(account_ids)
@@ -1255,6 +1321,22 @@ def _normalize_name(name: str) -> str:
     return normalized
 
 
+def _normalize_twenty_workspace_value(field_name: str, value: str | None) -> str | None:
+    if value is None:
+        return None
+    normalized = value.strip()
+    if not normalized:
+        raise ApiKeyValidationError(f"{field_name} must not be blank")
+    if len(normalized) > 128:
+        raise ApiKeyValidationError(f"{field_name} must be at most 128 characters")
+    return normalized
+
+
+def _is_twenty_workspace_unique_violation(exc: IntegrityError) -> bool:
+    message = str(exc.orig).lower()
+    return "twenty_workspace_id" in message or "uq_api_keys_twenty_workspace_id" in message
+
+
 _VALID_USAGE_SECTIONS = {"upstream_limits", "account_pool_usage"}
 _DEFAULT_USAGE_SECTIONS = "upstream_limits,account_pool_usage"
 
@@ -1635,6 +1717,8 @@ def _to_created_data(data: ApiKeyData, key: str) -> ApiKeyCreatedData:
         id=data.id,
         name=data.name,
         key_prefix=data.key_prefix,
+        twenty_workspace_id=data.twenty_workspace_id,
+        twenty_workspace_name=data.twenty_workspace_name,
         allowed_models=data.allowed_models,
         apply_to_codex_model=data.apply_to_codex_model,
         enforced_model=data.enforced_model,
@@ -1670,6 +1754,8 @@ def _to_api_key_data(
         id=row.id,
         name=row.name,
         key_prefix=row.key_prefix,
+        twenty_workspace_id=getattr(row, "twenty_workspace_id", None),
+        twenty_workspace_name=getattr(row, "twenty_workspace_name", None),
         allowed_models=_deserialize_allowed_models(row.allowed_models),
         apply_to_codex_model=getattr(row, "apply_to_codex_model", False),
         enforced_model=_normalize_model_slug(row.enforced_model),

@@ -101,6 +101,8 @@ from app.modules.sticky_sessions.cleanup_scheduler import (
     _abandoned_bridge_retention_seconds,
     build_sticky_session_cleanup_scheduler,
 )
+from app.modules.twenty_bridge import api as twenty_bridge_api
+from app.modules.twenty_bridge.config import validate_twenty_usage_bridge_config
 from app.modules.usage import api as usage_api
 from app.modules.usage.additional_quota_keys import reload_additional_quota_registry
 from app.modules.usage.live_ingest import start_live_usage_ingestor, stop_live_usage_ingestor
@@ -671,6 +673,7 @@ async def lifespan(app: FastAPI):
 
 def create_app() -> FastAPI:
     settings = get_settings()
+    validate_twenty_usage_bridge_config()
     configure_memory_monitor(reject_threshold_mb=settings.memory_reject_threshold_mb)
     app = FastAPI(
         title="codex-lb",
@@ -742,6 +745,7 @@ def create_app() -> FastAPI:
     app.include_router(sticky_sessions_api.router)
     app.include_router(automations_api.router)
     app.include_router(api_keys_api.router)
+    app.include_router(twenty_bridge_api.router)
     app.include_router(model_sources_api.router)
     app.include_router(health_api.router)
 

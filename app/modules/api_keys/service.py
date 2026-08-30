@@ -611,10 +611,14 @@ class ApiKeysService:
                 "twenty_workspace_name", payload.twenty_workspace_name
             )
         effective_twenty_workspace_id = (
-            existing.twenty_workspace_id if twenty_workspace_id_update is _UNSET else twenty_workspace_id_update
+            getattr(existing, "twenty_workspace_id", None)
+            if twenty_workspace_id_update is _UNSET
+            else twenty_workspace_id_update
         )
         effective_twenty_workspace_name = (
-            existing.twenty_workspace_name if twenty_workspace_name_update is _UNSET else twenty_workspace_name_update
+            getattr(existing, "twenty_workspace_name", None)
+            if twenty_workspace_name_update is _UNSET
+            else twenty_workspace_name_update
         )
         if effective_twenty_workspace_id is None and effective_twenty_workspace_name is not None:
             raise ApiKeyValidationError("twenty_workspace_name requires twenty_workspace_id")

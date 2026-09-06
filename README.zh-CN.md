@@ -5,7 +5,7 @@ This repository is the model-routing and gateway source used by Mhoo.
 
 - **Owns:** model request routing; gateway behavior.
 - **Does not own:** model or agent reasoning; business state or Core knowledge; Workspace or connector authority; deployment and cutover authority.
-- **Architecture authority:** [accepted Mhoo OS blueprint](https://github.com/mhoo-os/mhoo/blob/108662ffc8a6dac69ab777d720775ec9879b49d0/docs/architecture/SYSTEM_BLUEPRINT.md) and [ADR-0008](https://github.com/mhoo-os/mhoo/blob/108662ffc8a6dac69ab777d720775ec9879b49d0/ADR/0008-twenty-framework-platform.md).
+- **Architecture authority:** [accepted Mhoo OS blueprint](https://github.com/mhoo-os/mhoo/blob/92e43a7b9a59570c76729fb5f8850c66bda6ef78/docs/architecture/SYSTEM_BLUEPRINT.md) and [ADR-0008](https://github.com/mhoo-os/mhoo/blob/92e43a7b9a59570c76729fb5f8850c66bda6ef78/ADR/0008-twenty-framework-platform.md).
 - **Current implementation evidence:** [repository-owned source and records](https://github.com/mhoo-os/codex-lb/tree/main/app).
 - **Deployment and production evidence:** owned separately by [Mhoo OS Infrastructure](https://github.com/mhoo-os/infrastructure/tree/main/docs); source, CI, publication, and rehearsal are not deployment or cutover proof.
 - **Upstream context:** Mhoo-maintained derived repository; upstream product usage, attribution, and contributor documentation continue below the notice.

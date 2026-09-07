@@ -21,6 +21,76 @@ accepted ADR in `../mhoo/ADR/`; keep this repository's behavior requirements
 under the OpenSpec workflow below. This supplements rather than replaces the existing
 OpenSpec, merge-gate, migration, compatibility, and regression rules.
 
+## Repository head setup and evidence reuse
+
+- Verify the remote repository and default branch before starting; the Mhoo
+  source is `mhoo-os/codex-lb` (`main` at the 2026-09-07 setup checkpoint).
+  Record remote default-branch SHA, local HEAD/branch, dirty state, and retained
+  worktrees. Missing files in a sparse checkout do not prove remote absence.
+  Use an isolated branch for authorized edits; preserve other workers' changes.
+- This is maintained routing source for a retained service. A newer source
+  checkout does not identify the deployed image. Historical branches, published
+  candidates, and infrastructure receipts retain their original scope and date.
+  Workspace UI/identity and business state remain with Twenty; cross-repository
+  ownership follows the accepted Mhoo ADR, not an app or project name.
+- Reuse the issue's existing checkpoint or evidence index as its run ledger;
+  retain the [Mhoo coordinator's instructions](https://github.com/mhoo-os/mhoo/blob/main/AGENTS.md).
+  Consult it **before tests, probes, or dispatch**. Reuse matching inputs and
+  scope; before a rerun record the changed input, missing receipt, or concrete
+  freshness requirement. Required validation gates below remain binding.
+- Record each run's actual timestamp (or unknown), source/script hash, target,
+  safe command reference, result including failures, evidence location, what it
+  proves, and remaining gaps in that existing ledger. Keep secrets and private
+  payloads in protected custody; link sanitized references from the issue/PR.
+  Source/dependency/test changes invalidate affected source results; deployment,
+  restart, configuration changes, or a stated freshness window invalidate the
+  corresponding live observation. Neither kind proves the other.
+- At the 2026-09-06 retirement checkpoint, [MHO-236](https://linear.app/mhoo/issue/MHO-236)
+  scoped preservation to codex-lb; [MHO-249's existing ledger](https://linear.app/mhoo/document/mho-249-retirement-ledger-and-acceptance-handoff-470f0989f837)
+  and comment `c854000e-3ac0-425b-a4fe-e8b8d6c28dd9` hold the decision packet.
+  These are historical evidence pointers, not current runtime checks or deletion
+  approval. [MHO-237](https://linear.app/mhoo/issue/MHO-237) recovery,
+  [MHO-241](https://linear.app/mhoo/issue/MHO-241),
+  [MHO-248](https://linear.app/mhoo/issue/MHO-248) later work, and MHO-249
+  retirement retain separate scopes and gates. Legacy retirement does not block
+  fresh Oracle application readiness. Infrastructure owns live-service evidence;
+  the Mhoo coordinator retains retirement-evidence coordination.
+- Continue only the assigned source scope while its next safe step is clear.
+  Finish when the requested artifact and applicable verification are delivered;
+  report exact commit/PR, proof limits, next owner/action, and remaining gates.
+  Do not manufacture follow-on work or restart parked workers. A handoff requires
+  explicit custody acceptance and notification to retained workers; new docs on
+  a branch are not automatically available in their existing checkouts.
+- Escalate an ownership conflict, missing authorization, incompatible evidence,
+  or a required check that cannot be completed with the exact gap and proposed
+  next step. Do not change service routes, deploy, hand off credentials, or retire
+  resources through a source task. Classify cleanup candidates from receipts;
+  a prunable worktree, stopped service, or missing access is not deletion approval.
+
+### Existing verification commands
+
+Read [Makefile](Makefile), [pyproject.toml](pyproject.toml),
+[frontend/package.json](frontend/package.json), and
+[CI](.github/workflows/ci.yml) at the assigned source SHA before selecting checks.
+The following are existing commands, not a record that they have been run:
+
+| Scope | Command from repository root |
+| --- | --- |
+| Python lint / types | `make lint` / `make typecheck` |
+| Focused regression | `uv run pytest <existing-test-path> -q` |
+| Unit / bridge integration | `make test-unit` / `make test-integration-bridge` |
+| Frontend lint / types / tests | `make frontend-lint` / `make frontend-typecheck` / `make frontend-test` |
+| Frontend / package build | `make frontend-build` / `make package` |
+| Full local gate | `uv run pre-commit run local-ci --hook-stage manual --all-files` (runs `make ci`) |
+
+`make test-unit`, bridge tests, and packaging build the frontend; frontend
+targets install the frozen Bun dependencies. The full gate includes Docker,
+PostgreSQL, migrations, and a local Kubernetes smoke cluster. Use isolated test
+resources with explicit targets, never an operational database. Select relevant
+checks after ledger review; avoid redundant builds. For documentation-only work,
+check the diff, links, and applicable documentation/governance checks, and state
+why code tests do not apply. This does not waive current-head remote merge gates.
+
 ## Code Conventions
 
 The `/project-conventions` skill is auto-activated on code edits (PreToolUse guard).

@@ -23,6 +23,15 @@ OpenSpec, merge-gate, migration, compatibility, and regression rules.
 
 ## Repository head setup and evidence reuse
 
+Before continuation or handoff, record the primary issue (or explicitly none),
+implementation-owning repository, coordinating repo head and retained worker
+(or none), exact source commit and PR/evidence links, existing run-ledger
+location, dependencies/blockers and their owners (or explicitly none/unknown),
+and the authorized next step. Carry this mapping into the handoff and acknowledge
+the authoritative instructions commit and reading path. Resolve unknown or
+conflicting ownership with the owning head before dependent work; a project
+label or issue status does not grant authority or create a new task.
+
 - Verify the remote repository and default branch before starting; the Mhoo
   source is `mhoo-os/codex-lb` (`main` at the 2026-09-07 setup checkpoint).
   Record remote default-branch SHA, local HEAD/branch, dirty state, and retained

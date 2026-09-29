@@ -109,6 +109,12 @@ class MultipartContentEncodingMiddleware:
             await self.app(scope, receive, send)
             return
 
+        media_type = headers.get("content-type", "").split(";", 1)[0].strip().lower()
+        if _canonical_route_path(scope) == "/v1/images/edits" and media_type == "application/json":
+            # JSON edits use generic raw/decompressed limits, not multipart admission.
+            await self.app(scope, receive, send)
+            return
+
         content_encoding_values = headers.getlist("content-encoding")
         if not content_encoding_values:
             await self.app(scope, receive, send)

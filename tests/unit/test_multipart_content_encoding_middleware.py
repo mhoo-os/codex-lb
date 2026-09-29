@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import gzip
 import json
 from collections.abc import AsyncIterator
 
@@ -179,7 +180,7 @@ async def test_unrelated_or_unencoded_requests_pass_through(scope: Scope) -> Non
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("content_type", [b"application/json", b""])
+@pytest.mark.parametrize("content_type", [b"text/plain", b""])
 async def test_protected_path_marks_encoding_even_when_content_type_is_not_multipart(content_type: bytes) -> None:
     sent, downstream, unsupported, receive_calls = await _run(_scope("/v1/images/edits", content_type=content_type))
 
@@ -310,6 +311,13 @@ async def test_production_stack_keeps_dedicated_uploads_auth_first_above_generic
     finally:
         get_settings.cache_clear()
 
+    if path == "/v1/images/edits" and content_type == "application/json":
+        assert response.status_code == 413
+        assert response.json()["error"]["code"] == "payload_too_large"
+        assert authorization_calls == []
+        assert body.iterations == 0
+        return
+
     assert response.status_code == (403 if path.startswith("/api/") else 401)
     assert authorization_calls == [path]
     assert body.iterations == 0
@@ -364,3 +372,53 @@ def test_production_middleware_order_composes_route_and_generic_ingress_guards()
     )
 
     assert alias_index < multipart_index < limit_index < decompression_index
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("encoding", [b"identity", b"gzip"])
+@pytest.mark.parametrize("content_type", [b"application/json", b"Application/JSON; charset=utf-8"])
+async def test_json_edits_preserve_encoding_for_generic_admission(encoding: bytes, content_type: bytes) -> None:
+    sent, downstream, unsupported, receive_calls = await _run(
+        _scope("/v1/images/edits", content_type=content_type, content_encoding=encoding)
+    )
+    assert sent[0]["status"] == 204
+    assert downstream[0].get("content-encoding") == encoding.decode()
+    assert unsupported == [False]
+    assert receive_calls == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("path", ["/v1/images/edits", "/backend-api/codex/images/edits"])
+@pytest.mark.parametrize("encoding", [None, "identity", "gzip"])
+@pytest.mark.parametrize("oversized", [False, True])
+async def test_json_edits_production_stack_enforces_streamed_and_decompressed_limits(
+    monkeypatch: pytest.MonkeyPatch, path: str, encoding: str | None, oversized: bool
+) -> None:
+    monkeypatch.setenv("CODEX_LB_MAX_DECOMPRESSED_BODY_BYTES", "128")
+    get_settings.cache_clear()
+    await get_firewall_ip_cache().set("127.0.0.1", True)
+    # No content-length: admission must count actual streamed/decompressed bytes.
+    payload = json.dumps({"model": "gpt-image-2", "prompt": "x" * (256 if oversized else 1), "images": []}).encode()
+    body = _TrackingBody(gzip.compress(payload) if encoding == "gzip" else payload)
+
+    async def allow_proxy() -> None:
+        return None
+
+    app = create_app()
+    app.dependency_overrides[validate_proxy_api_key] = allow_proxy
+    try:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://testserver") as client:
+            headers = {"Content-Type": "Application/JSON; charset=utf-8"}
+            if encoding is not None:
+                headers["Content-Encoding"] = encoding
+            response = await client.post(path, content=body, headers=headers)
+    finally:
+        get_settings.cache_clear()
+
+    assert body.iterations == 1
+    assert response.status_code == (413 if oversized else 400)
+    if oversized:
+        assert response.json()["error"]["code"] == "payload_too_large"
+    else:
+        # Reached JSON validation after decoding rather than multipart parsing.
+        assert response.json()["error"]["param"] == "images"

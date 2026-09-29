@@ -150,10 +150,12 @@ async def test_images_generations_unsupported_model_returns_400(async_client, ca
 
 
 @pytest.mark.asyncio
-async def test_images_generations_model_policy_rejection_records_route_observability(
+@pytest.mark.parametrize("route", ["generations", "edits"])
+async def test_images_model_policy_rejection_records_route_observability(
     async_client,
     monkeypatch,
     caplog,
+    route,
 ):
     def reject_model_access(*args, **kwargs):
         del args, kwargs
@@ -163,14 +165,18 @@ async def test_images_generations_model_policy_rejection_records_route_observabi
 
     with caplog.at_level(logging.WARNING, logger="app.modules.proxy.api"):
         response = await async_client.post(
-            "/v1/images/generations",
-            json={"model": "gpt-image-2", "prompt": "a red circle"},
+            f"/v1/images/{route}",
+            json={
+                "model": "gpt-image-2",
+                "prompt": "a red circle",
+                "images": [{"image_url": "data:image/png;base64,aGVsbG8="}],
+            },
         )
     assert response.status_code == 403
     body = response.json()
     assert body["error"]["type"] == "permission_error"
     assert (
-        "images_route_complete route=generations model=gpt-image-2 stream=false status=403 outcome=model_not_allowed"
+        f"images_route_complete route={route} model=gpt-image-2 stream=false status=403 outcome=model_not_allowed"
         in caplog.text
     )
 
@@ -618,7 +624,7 @@ async def test_images_generations_failed_image_returns_5xx(async_client, monkeyp
 @pytest.mark.parametrize(
     "content_type",
     ["multipart/form-data; boundary=never-read", "application/json"],
-    ids=["multipart", "wrong-json-content-type"],
+    ids=["multipart", "json"],
 )
 async def test_v1_images_edits_auth_rejection_does_not_read_body_and_records_once(
     async_client,
@@ -958,10 +964,11 @@ async def test_v1_images_edits_malformed_multipart_records_one_invalid_request(
 
 
 @pytest.mark.asyncio
-async def test_backend_codex_images_edits_requires_native_image_data_urls(async_client, caplog):
+@pytest.mark.parametrize("path", ["/v1/images/edits", "/backend-api/codex/images/edits"])
+async def test_images_edits_requires_native_image_data_urls(async_client, caplog, path):
     with caplog.at_level(logging.WARNING, logger="app.modules.proxy.api"):
         response = await async_client.post(
-            "/backend-api/codex/images/edits",
+            path,
             json={"model": "gpt-image-2", "prompt": "make it green", "images": []},
         )
     assert response.status_code == 400
@@ -1010,11 +1017,13 @@ async def test_images_edits_trailing_slash_parity_between_v1_and_codex_alias(asy
 
 
 @pytest.mark.asyncio
-async def test_backend_codex_images_edits_invalid_utf8_returns_400(async_client, caplog):
+@pytest.mark.parametrize("path", ["/v1/images/edits", "/backend-api/codex/images/edits"])
+@pytest.mark.parametrize("content", [b"\xff", b"{", b"[]"])
+async def test_images_edits_invalid_json_returns_400(async_client, caplog, path, content):
     with caplog.at_level(logging.WARNING, logger="app.modules.proxy.api"):
         response = await async_client.post(
-            "/backend-api/codex/images/edits",
-            content=b"\xff",
+            path,
+            content=content,
             headers={"content-type": "application/json"},
         )
 
@@ -1099,7 +1108,9 @@ async def test_images_edits_basic_round_trip(async_client, monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_backend_codex_images_edits_json_data_urls_round_trip(async_client, monkeypatch):
+@pytest.mark.parametrize("path", ["/v1/images/edits", "/backend-api/codex/images/edits"])
+@pytest.mark.parametrize("content_type", ["application/json", "Application/JSON; charset=utf-8"])
+async def test_images_edits_json_data_urls_round_trip(async_client, monkeypatch, path, content_type):
     await _import_account(async_client, "acc_images_edit_codex", "img-edit-codex@example.com")
 
     captured: dict[str, object] = {}
@@ -1137,7 +1148,8 @@ async def test_backend_codex_images_edits_json_data_urls_round_trip(async_client
     image_bytes = b"\x89PNG\r\n\x1a\n" + b"\x00" * 16
     image_url = f"data:image/png;base64,{base64.b64encode(image_bytes).decode('ascii')}"
     response = await async_client.post(
-        "/backend-api/codex/images/edits",
+        path,
+        headers={"content-type": content_type},
         json={
             "model": "gpt-image-2",
             "prompt": "make it green",
@@ -1166,7 +1178,7 @@ async def test_backend_codex_images_edits_json_data_urls_round_trip(async_client
     ]
     assert len(image_parts) == 1
     image_url_value = cast(str, image_parts[0]["image_url"])
-    assert image_url_value.startswith("data:image/png;base64,")
+    assert image_url_value == image_url
 
 
 @pytest.mark.asyncio

@@ -2668,6 +2668,10 @@ async def v1_images_edits(
     context: ProxyContext = Depends(get_proxy_context),
     api_key: ApiKeyData | None = Security(validate_proxy_api_key),
 ) -> Response:
+    media_type = request.headers.get("content-type", "").split(";", 1)[0].strip().lower()
+    if media_type == "application/json":
+        return await codex_images_edits(request, context, api_key)
+
     capability_transport_denial = await _required_capability_http_transport_denial(request, api_key)
     if capability_transport_denial is not None:
         _record_required_capability_image_transport_denial(
@@ -2838,7 +2842,7 @@ async def codex_images_edits(
     context: ProxyContext = Depends(get_proxy_context),
     api_key: ApiKeyData | None = Security(validate_proxy_api_key),
 ) -> Response:
-    """Accept Codex's JSON data-URL image-edit payload on its native base URL.
+    """Accept Codex's JSON data-URL image-edit payload on either base URL.
 
     The built-in Codex image tool sends ``images: [{"image_url":
     "data:<mime>;base64,..."}]`` rather than the multipart ``image`` parts

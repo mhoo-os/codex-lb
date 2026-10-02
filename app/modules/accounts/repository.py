@@ -4,7 +4,7 @@ import json
 import time
 import uuid
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any
 
 from sqlalchemy import case, delete, func, or_, select, text, update
@@ -953,6 +953,23 @@ class AccountsRepository:
                 latest_pending_tool_calls_json=None,
             )
         )
+
+    async def update_billing_dates(
+        self, account_id: str, *, renewal: date | None, paid_through: date | None, cancel_review: date | None
+    ) -> bool:
+        async with sqlite_writer_section():
+            result = await self._session.execute(
+                update(Account)
+                .where(Account.id == account_id, Account.delete_requested_at.is_(None))
+                .values(
+                    billing_renewal_date=renewal,
+                    billing_paid_through_date=paid_through,
+                    billing_cancel_review_date=cancel_review,
+                )
+                .returning(Account.id)
+            )
+            await self._session.commit()
+            return result.scalar_one_or_none() is not None
 
     async def update_alias(self, account_id: str, alias: str | None) -> bool:
         async with sqlite_writer_section():

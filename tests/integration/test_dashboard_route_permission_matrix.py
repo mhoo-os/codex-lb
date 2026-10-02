@@ -96,6 +96,7 @@ EXPECTED_REQUIREMENTS: dict[tuple[str, str], PermissionRequirement] = {
     ("POST", "/api/accounts/{account_id}/pause"): PermissionRequirement(Permission.ACCOUNTS_WRITE),
     ("POST", "/api/accounts/{account_id}/reactivate"): PermissionRequirement(Permission.ACCOUNTS_WRITE),
     ("POST", "/api/accounts/{account_id}/probe"): PermissionRequirement(Permission.ACCOUNTS_WRITE),
+    ("PUT", "/api/accounts/{account_id}/billing"): PermissionRequirement(Permission.ACCOUNTS_WRITE),
     ("PUT", "/api/accounts/{account_id}/alias"): PermissionRequirement(Permission.ACCOUNTS_WRITE),
     ("PUT", "/api/accounts/{account_id}/limit-warmup"): PermissionRequirement(Permission.ACCOUNTS_WRITE),
     ("PUT", "/api/accounts/{account_id}/routing-policy"): PermissionRequirement(Permission.ACCOUNTS_WRITE),

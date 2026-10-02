@@ -65,11 +65,21 @@ export const AccountAdditionalQuotaSchema = z.object({
   secondaryWindow: AccountAdditionalWindowSchema.nullable().optional(),
 });
 
+export const AccountBillingSchema = z.object({
+  billingRenewalDate: z.iso.date().nullable(),
+  billingPaidThroughDate: z.iso.date().nullable(),
+  billingCancelReviewDate: z.iso.date().nullable(),
+});
+export type AccountBilling = z.infer<typeof AccountBillingSchema>;
+
 export const AccountSummarySchema = z.object({
   accountId: z.string(),
   chatgptAccountId: z.string().nullable().optional(),
   email: z.string(),
   alias: z.string().nullable().optional(),
+  billingRenewalDate: z.iso.date().nullable().optional(),
+  billingPaidThroughDate: z.iso.date().nullable().optional(),
+  billingCancelReviewDate: z.iso.date().nullable().optional(),
   displayName: z.string(),
   workspaceId: z.string().nullable().optional(),
   workspaceLabel: z.string().nullable().optional(),

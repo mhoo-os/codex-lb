@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from datetime import timedelta
+from datetime import date, timedelta
 from typing import cast
 from uuid import uuid4
 
@@ -675,6 +675,13 @@ class AccountsService:
                 await poller.bump(NAMESPACE_API_KEY)
             request_account_deletion_run()
         return result
+
+    async def set_billing_dates(
+        self, account_id: str, *, renewal: date | None, paid_through: date | None, cancel_review: date | None
+    ) -> bool:
+        return await self._repo.update_billing_dates(
+            account_id, renewal=renewal, paid_through=paid_through, cancel_review=cancel_review
+        )
 
     async def set_account_alias(self, account_id: str, alias: str | None) -> bool:
         normalized = alias.strip() if isinstance(alias, str) else None

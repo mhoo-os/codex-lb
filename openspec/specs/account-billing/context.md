@@ -1,0 +1,1 @@
+Dates are manual reminders, not OpenAI billing verification. A subscription renewing tomorrow does not imply quota resets tomorrow. Use the existing routing control only by deliberate operator action. Stale dates require review rather than inferred renewal. No scheduler, external notification, or cancellation integration is introduced.

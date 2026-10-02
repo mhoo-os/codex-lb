@@ -1,6 +1,7 @@
 import { del, get, patch, post, put } from "@/lib/api-client";
 
 import {
+  AccountBillingSchema,
   AccountActionResponseSchema,
   AccountAliasRequestSchema,
   AccountAliasResponseSchema,
@@ -30,6 +31,7 @@ import {
   RuntimeConnectAddressResponseSchema,
 } from "@/features/accounts/schemas";
 import type {
+  AccountBilling,
   AccountRoutingPolicy,
   AccountUsageResetConsumeRequest,
 } from "@/features/accounts/schemas";
@@ -199,4 +201,10 @@ export function submitManualOauthCallback(payload: unknown) {
 
 export function getRuntimeConnectAddress() {
   return get("/api/settings/runtime/connect-address", RuntimeConnectAddressResponseSchema);
+}
+
+export function setAccountBilling(accountId: string, billing: AccountBilling) {
+  return put(`${ACCOUNTS_BASE_PATH}/${encodeURIComponent(accountId)}/billing`, AccountBillingSchema, {
+    body: AccountBillingSchema.parse(billing),
+  });
 }

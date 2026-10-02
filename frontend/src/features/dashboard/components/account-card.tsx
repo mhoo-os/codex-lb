@@ -1,3 +1,4 @@
+import { AccountBillingSummary } from "@/features/accounts/components/account-billing-summary";
 import { Clock, ExternalLink, Play, RotateCcw, Zap } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -215,6 +216,8 @@ export function AccountCard({ account, showAccountId = false, readOnly = false, 
           </span>
         </p>
       </div>
+
+      <div className="mt-3 border-t pt-3"><AccountBillingSummary account={account} /></div>
 
       {/* Actions */}
       <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t pt-3">

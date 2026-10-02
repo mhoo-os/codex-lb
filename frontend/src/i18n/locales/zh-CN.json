@@ -2027,5 +2027,22 @@
   "organisation.automaticAccounts.secret.description": "这是“{{label}}”的凭据。",
   "organisation.automaticAccounts.secret.warning": "请立即复制。它只显示这一次，之后无法再查看；如果丢失，请更换凭据。",
   "organisation.automaticAccounts.secret.copy": "复制凭据",
-  "organisation.errors.scim_token_not_found": "该凭据已不存在。"
+  "organisation.errors.scim_token_not_found": "该凭据已不存在。",
+  "accounts.billing.title": "账单日期",
+  "accounts.billing.manual": "手动填写的提醒。请向订阅服务商核实日期。",
+  "accounts.billing.renewal": "下次续费",
+  "accounts.billing.paidThrough": "已付费至",
+  "accounts.billing.cancelReview": "检查取消订阅的日期",
+  "accounts.billing.unknown": "未填写",
+  "accounts.billing.edit": "编辑账单日期",
+  "accounts.billing.save": "保存日期",
+  "accounts.billing.saved": "账单日期已保存",
+  "accounts.billing.review": "请向订阅服务商检查取消订阅事宜。此提醒不会取消订阅。",
+  "accounts.billing.stale": "已保存的账单日期已过。请核实并更新；尚未确认订阅已到期。",
+  "accounts.billing.useFirst": "可考虑优先使用此账号：账单日期在 7 天内，且仍有可用额度。",
+  "accounts.billing.quotaNote": "账单日期不会重置额度。路由调整仍需手动操作。",
+  "accounts.billing.column": "账单",
+  "accounts.billing.reviewShort": "检查取消订阅",
+  "accounts.billing.staleShort": "核实日期",
+  "accounts.billing.useFirstShort": "考虑优先使用"
 }

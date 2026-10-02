@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from datetime import datetime
+import re
+from datetime import date, datetime
 from typing import List
 
 from pydantic import Field, PrivateAttr, field_validator
@@ -79,11 +80,35 @@ class AccountAdditionalQuota(DashboardModel):
     secondary_window: AccountAdditionalWindow | None = None
 
 
+class AccountBillingRequest(DashboardModel):
+    billing_renewal_date: date | None
+    billing_paid_through_date: date | None
+    billing_cancel_review_date: date | None
+
+    @field_validator("billing_renewal_date", "billing_paid_through_date", "billing_cancel_review_date", mode="before")
+    @classmethod
+    def validate_calendar_date(cls, value: str | None) -> str | None:
+        if value is not None and (not isinstance(value, str) or not re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", value)):
+            raise ValueError("Use a calendar date in YYYY-MM-DD format or null")
+        return value
+
+
+class AccountBillingResponse(DashboardModel):
+    account_id: str
+    billing_renewal_date: date | None
+    billing_paid_through_date: date | None
+    billing_cancel_review_date: date | None
+
+
 class AccountSummary(DashboardModel):
     account_id: str
     chatgpt_account_id: str | None = None
     email: str
     alias: str | None = None
+    billing_renewal_date: date | None = None
+    billing_paid_through_date: date | None = None
+    billing_cancel_review_date: date | None = None
+
     display_name: str
     workspace_id: str | None = None
     workspace_label: str | None = None

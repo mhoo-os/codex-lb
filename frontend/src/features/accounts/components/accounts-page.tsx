@@ -46,6 +46,7 @@ export function AccountsPage() {
     pauseMutation,
     resumeMutation,
     setAliasMutation,
+    billingMutation,
     probeMutation,
     usageResetMutation,
     limitWarmupMutation,
@@ -124,6 +125,7 @@ export function AccountsPage() {
     pauseMutation.isPending ||
     resumeMutation.isPending ||
     setAliasMutation.isPending ||
+    billingMutation.isPending ||
     probeMutation.isPending ||
     usageResetMutation.isPending ||
     limitWarmupMutation.isPending ||
@@ -206,6 +208,7 @@ export function AccountsPage() {
             onResume={(accountId) => void resumeMutation.mutateAsync(accountId)}
             onProbe={(accountId) => void probeMutation.mutateAsync({ accountId })}
             onResetUsage={(accountId) => usageResetDialog.show(accountId)}
+            onSetBilling={(accountId, billing) => billingMutation.mutateAsync({ accountId, billing })}
             onSetAlias={(accountId, alias) =>
               setAliasMutation.mutateAsync({ accountId, alias })
             }

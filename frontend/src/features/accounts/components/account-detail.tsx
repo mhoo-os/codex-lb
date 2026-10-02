@@ -7,11 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { usePrivacyStore } from "@/hooks/use-privacy";
+import { AccountBillingPanel } from "@/features/accounts/components/account-billing-panel";
 import { AccountActions } from "@/features/accounts/components/account-actions";
 import { AccountProxyBinding } from "@/features/accounts/components/account-proxy-binding";
 import { AccountTokenInfo } from "@/features/accounts/components/account-token-info";
 import { AccountUsagePanel } from "@/features/accounts/components/account-usage-panel";
 import type {
+  AccountBilling,
   AccountRoutingPolicy,
   AccountSummary,
   AccountUsageResetCredits,
@@ -34,6 +36,7 @@ export type AccountDetailProps = {
   onResume: (accountId: string) => void;
   onProbe: (accountId: string) => void;
   onResetUsage: (accountId: string) => void;
+  onSetBilling?: (accountId: string, billing: AccountBilling) => Promise<unknown>;
   onSetAlias: (accountId: string, alias: string | null) => Promise<unknown>;
   onDelete: (accountId: string) => void;
   onReauth: () => void;
@@ -64,6 +67,7 @@ export function AccountDetail({
   onProbe,
   onResetUsage,
   onSetAlias,
+  onSetBilling,
   onDelete,
   onReauth,
   onExportAuth,
@@ -171,6 +175,7 @@ export function AccountDetail({
         resetDisabled={usageResetDisabled}
         onReset={onResetUsage}
       />
+      <AccountBillingPanel key={account.accountId} account={account} busy={busy} readOnly={readOnly} onSave={onSetBilling} />
       <AccountTokenInfo account={account} />
       <AccountActions
         account={account}

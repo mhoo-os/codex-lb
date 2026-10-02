@@ -3379,3 +3379,44 @@ async def test_bridge_continuity_abandonment_migration_upgrade_and_downgrade(tmp
 
 
 # end bridge continuity abandonment
+
+
+@pytest.mark.asyncio
+async def test_account_billing_dates_migration_round_trip(tmp_path):
+    from alembic import command
+
+    from app.db.migrate import _build_alembic_config
+
+    db_url = f"sqlite+aiosqlite:///{tmp_path / 'billing.sqlite'}"
+    parent = "20260918_000000_merge_scim_and_overflow_heads"
+    await to_thread.run_sync(lambda: run_upgrade(db_url, parent, bootstrap_legacy=False))
+    engine = create_async_engine(db_url)
+    try:
+        async with engine.begin() as conn:
+            await conn.execute(
+                text(
+                    "INSERT INTO accounts (id, email, plan_type, access_token_encrypted, "
+                    "refresh_token_encrypted, id_token_encrypted, last_refresh, status, codex_installation_id) "
+                    "VALUES ('old', 'old@example.com', 'plus', X'01', X'02', X'03', "
+                    "CURRENT_TIMESTAMP, 'active', 'old-install')"
+                )
+            )
+        await to_thread.run_sync(lambda: run_upgrade(db_url, "head", bootstrap_legacy=False))
+        async with engine.connect() as conn:
+            row = (
+                await conn.execute(
+                    text(
+                        "SELECT billing_renewal_date, billing_paid_through_date, "
+                        "billing_cancel_review_date, access_token_encrypted FROM accounts WHERE id='old'"
+                    )
+                )
+            ).one()
+            assert tuple(row) == (None, None, None, b"\x01")
+        await to_thread.run_sync(lambda: command.downgrade(_build_alembic_config(db_url), parent))
+        await to_thread.run_sync(lambda: run_upgrade(db_url, "head", bootstrap_legacy=False))
+        async with engine.connect() as conn:
+            assert (
+                await conn.execute(text("SELECT email FROM accounts WHERE id='old'"))
+            ).scalar_one() == "old@example.com"
+    finally:
+        await engine.dispose()

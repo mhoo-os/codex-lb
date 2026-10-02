@@ -212,3 +212,9 @@ describe("AccountCard", () => {
     expect(onAction).not.toHaveBeenCalledWith(account, "reset-credit");
   });
 });
+
+it("shows saved billing dates in dashboard cards", () => {
+  render(<AccountCard account={createAccountSummary({ billingRenewalDate: "2026-11-01", billingPaidThroughDate: "2026-11-01" })} />);
+  expect(screen.getByText("Next renewal:")).toBeInTheDocument();
+  expect(screen.getByText("Paid through:")).toBeInTheDocument();
+});

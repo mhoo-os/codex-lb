@@ -2027,5 +2027,22 @@
   "organisation.automaticAccounts.secret.description": "“{{label}}”의 자격 증명입니다.",
   "organisation.automaticAccounts.secret.warning": "지금 복사하세요. 한 번만 표시되고 다시 볼 수 없습니다. 잃어버렸다면 자격 증명을 교체하세요.",
   "organisation.automaticAccounts.secret.copy": "자격 증명 복사",
-  "organisation.errors.scim_token_not_found": "그 자격 증명은 더 이상 없습니다."
+  "organisation.errors.scim_token_not_found": "그 자격 증명은 더 이상 없습니다.",
+  "accounts.billing.title": "결제 날짜",
+  "accounts.billing.manual": "수동으로 입력한 알림입니다. 구독 제공업체에서 날짜를 확인하세요.",
+  "accounts.billing.renewal": "다음 갱신일",
+  "accounts.billing.paidThrough": "이용 가능 기한",
+  "accounts.billing.cancelReview": "해지 검토일",
+  "accounts.billing.unknown": "입력되지 않음",
+  "accounts.billing.edit": "결제 날짜 수정",
+  "accounts.billing.save": "날짜 저장",
+  "accounts.billing.saved": "결제 날짜가 저장되었습니다",
+  "accounts.billing.review": "구독 제공업체에서 해지를 검토하세요. 이 알림은 구독을 해지하지 않습니다.",
+  "accounts.billing.stale": "저장된 결제 날짜가 지났습니다. 확인 후 업데이트하세요. 만료가 확인된 것은 아닙니다.",
+  "accounts.billing.useFirst": "이 계정의 우선 사용을 고려하세요. 결제 날짜가 7일 이내이며 사용량이 남아 있습니다.",
+  "accounts.billing.quotaNote": "결제 날짜는 사용량 한도를 초기화하지 않습니다. 라우팅 변경은 수동으로 수행합니다.",
+  "accounts.billing.column": "결제",
+  "accounts.billing.reviewShort": "해지 검토",
+  "accounts.billing.staleShort": "날짜 확인",
+  "accounts.billing.useFirstShort": "우선 사용 고려"
 }

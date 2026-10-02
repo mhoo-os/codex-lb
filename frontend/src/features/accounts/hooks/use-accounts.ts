@@ -17,11 +17,13 @@ import {
   probeAccount,
   reactivateAccount,
   setAccountAlias,
+  setAccountBilling,
   updateAccount,
   updateAccountLimitWarmup,
   updateAccountRoutingPolicy,
 } from "@/features/accounts/api";
 import type {
+  AccountBilling,
   AccountRoutingPolicy,
   AccountUsageResetConsumeResponse,
 } from "@/features/accounts/schemas";
@@ -110,6 +112,16 @@ export function useAccountMutations() {
     onError: (error: Error) => {
       toast.error(error.message || t("accounts.toasts.resumeFailed"));
     },
+  });
+
+  const billingMutation = useMutation({
+    mutationFn: ({ accountId, billing }: { accountId: string; billing: AccountBilling }) =>
+      setAccountBilling(accountId, billing),
+    onSuccess: () => {
+      toast.success(t("accounts.billing.saved"));
+      void invalidateAccountRelatedQueries(queryClient);
+    },
+    onError: (error: Error) => toast.error(error.message),
   });
 
   const setAliasMutation = useMutation({
@@ -247,6 +259,7 @@ export function useAccountMutations() {
     pauseMutation,
     resumeMutation,
     setAliasMutation,
+    billingMutation,
     deleteMutation,
     probeMutation,
     usageResetMutation,

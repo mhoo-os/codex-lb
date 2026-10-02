@@ -716,3 +716,53 @@ async def test_list_accounts_flags_email_duplicates(async_client):
     assert accounts_by_id["placeholder-b"]["isEmailDuplicate"] is False
     assert accounts_by_id["blank-a"]["isEmailDuplicate"] is False
     assert accounts_by_id["blank-b"]["isEmailDuplicate"] is False
+
+
+@pytest.mark.asyncio
+async def test_billing_dates_persist_clear_and_preserve_account(async_client):
+    async with SessionLocal() as session:
+        session.add(
+            Account(
+                id="billing-test",
+                email="billing@example.com",
+                plan_type="plus",
+                access_token_encrypted=b"access",
+                refresh_token_encrypted=b"refresh",
+                id_token_encrypted=b"id",
+                last_refresh=datetime(2026, 10, 2),
+                routing_policy="preserve",
+            )
+        )
+        await session.commit()
+    dates = {
+        "billingRenewalDate": "2026-10-31",
+        "billingPaidThroughDate": "2026-10-31",
+        "billingCancelReviewDate": "2026-10-28",
+    }
+    response = await async_client.put("/api/accounts/billing-test/billing", json=dates)
+    assert response.status_code == 200
+    listing = await async_client.get("/api/accounts")
+    account = next(a for a in listing.json()["accounts"] if a["accountId"] == "billing-test")
+    assert all(account[k] == v for k, v in dates.items())
+    assert account["routingPolicy"] == "preserve"
+    async with SessionLocal() as session:
+        stored = await session.get(Account, "billing-test")
+        assert stored.access_token_encrypted == b"access"
+    for invalid in ("2026-02-30", "2026-10-31T00:00:00Z", 1793404800, "", "10/31/2026"):
+        response = await async_client.put(
+            "/api/accounts/billing-test/billing", json={**dates, "billingRenewalDate": invalid}
+        )
+        assert response.status_code == 422
+    response = await async_client.put("/api/accounts/billing-test/billing", json={"billingRenewalDate": None})
+    assert response.status_code == 422
+    response = await async_client.put("/api/accounts/billing-test/billing", json=dict.fromkeys(dates))
+    assert response.status_code == 200
+    assert all(response.json()[key] is None for key in dates)
+    response = await async_client.put("/api/accounts/missing/billing", json=dates)
+    assert response.status_code == 404
+    async with SessionLocal() as session:
+        stored = await session.get(Account, "billing-test")
+        stored.delete_requested_at = datetime(2026, 10, 2)
+        await session.commit()
+    response = await async_client.put("/api/accounts/billing-test/billing", json=dates)
+    assert response.status_code == 404

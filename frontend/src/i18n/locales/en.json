@@ -2027,5 +2027,22 @@
   "organisation.automaticAccounts.secret.description": "This is the credential for “{{label}}”.",
   "organisation.automaticAccounts.secret.warning": "Copy it now. It is shown once and cannot be read again; if you lose it, replace the credential.",
   "organisation.automaticAccounts.secret.copy": "Copy credential",
-  "organisation.errors.scim_token_not_found": "That credential no longer exists."
+  "organisation.errors.scim_token_not_found": "That credential no longer exists.",
+  "accounts.billing.title": "Billing dates",
+  "accounts.billing.manual": "Manually entered reminders. Verify dates with your subscription provider.",
+  "accounts.billing.renewal": "Next renewal",
+  "accounts.billing.paidThrough": "Paid through",
+  "accounts.billing.cancelReview": "Review cancellation on",
+  "accounts.billing.unknown": "Not entered",
+  "accounts.billing.edit": "Edit billing dates",
+  "accounts.billing.save": "Save dates",
+  "accounts.billing.saved": "Billing dates saved",
+  "accounts.billing.review": "Review cancellation with your subscription provider. This reminder does not cancel your plan.",
+  "accounts.billing.stale": "A saved billing date has passed. Verify and update it; expiry is not confirmed.",
+  "accounts.billing.useFirst": "Consider using this account first: a billing date is within 7 days and quota is available.",
+  "accounts.billing.quotaNote": "Billing dates do not reset quota. Routing changes remain manual.",
+  "accounts.billing.column": "Billing",
+  "accounts.billing.reviewShort": "Review cancellation",
+  "accounts.billing.staleShort": "Verify dates",
+  "accounts.billing.useFirstShort": "Consider use first"
 }

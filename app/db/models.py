@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from enum import Enum
 
 from sqlalchemy import (
     BigInteger,
     Boolean,
     CheckConstraint,
+    Date,
     DateTime,
     Float,
     ForeignKey,
@@ -95,6 +96,10 @@ class Account(Base):
     )
     email: Mapped[str] = mapped_column(String, nullable=False)
     alias: Mapped[str | None] = mapped_column(String, nullable=True)
+    billing_renewal_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    billing_paid_through_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    billing_cancel_review_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+
     workspace_id: Mapped[str | None] = mapped_column(String, nullable=True)
     workspace_label: Mapped[str | None] = mapped_column(String, nullable=True)
     seat_type: Mapped[str | None] = mapped_column(String, nullable=True)

@@ -48,7 +48,7 @@ describe("AccountList", () => {
     expect(screen.getByText("5065.20")).toBeInTheDocument();
     expect(screen.getByText("42.50")).toBeInTheDocument();
     expect(screen.getByText("On")).toBeInTheDocument();
-    expect(screen.getByTestId("dashboard-account-list").firstElementChild).toHaveClass("min-w-[76rem]");
+    expect(screen.getByTestId("dashboard-account-list").firstElementChild).toHaveClass("min-w-[89rem]");
   });
 
   it("renders primary idle warm-up attempts as 5h", () => {
@@ -360,4 +360,18 @@ describe("AccountList", () => {
 
     expect(screen.getByRole("link", { name: "Add accounts" })).toHaveAttribute("href", "/accounts");
   });
+});
+
+it("shows billing dates on the dashboard and sorts unknown dates last", async () => {
+  const user = userEvent.setup();
+  render(<AccountList accounts={[
+    createAccountSummary({ accountId: "unknown", displayName: "Unknown Account" }),
+    createAccountSummary({ accountId: "later", displayName: "Later Account", billingRenewalDate: "2026-12-01" }),
+    createAccountSummary({ accountId: "sooner", displayName: "Sooner Account", billingRenewalDate: "2026-11-01", billingCancelReviewDate: "2026-10-28" }),
+  ]} />);
+  expect(screen.getByText(/2026-10-28/)).toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: "Billing" }));
+  const rows = screen.getAllByTestId("account-list-row");
+  expect(rows[0]).toHaveTextContent("Sooner Account");
+  expect(rows[2]).toHaveTextContent("Unknown Account");
 });

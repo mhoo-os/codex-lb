@@ -29,6 +29,8 @@ from app.modules.accounts.schemas import (
     AccountAliasRequest,
     AccountAliasResponse,
     AccountAuthExportResponse,
+    AccountBillingRequest,
+    AccountBillingResponse,
     AccountDeleteResponse,
     AccountImportResponse,
     AccountLimitWarmupUpdateRequest,
@@ -358,6 +360,24 @@ async def pause_account(
     if not success:
         raise DashboardNotFoundError("Account not found", code="account_not_found")
     return AccountPauseResponse(status="paused")
+
+
+@router.put("/{account_id}/billing", response_model=AccountBillingResponse)
+async def set_account_billing(
+    account_id: str,
+    payload: AccountBillingRequest,
+    _write_access=Depends(require_dashboard_permission(Permission.ACCOUNTS_WRITE)),
+    context: AccountsContext = Depends(get_accounts_context),
+) -> AccountBillingResponse:
+    success = await context.service.set_billing_dates(
+        account_id,
+        renewal=payload.billing_renewal_date,
+        paid_through=payload.billing_paid_through_date,
+        cancel_review=payload.billing_cancel_review_date,
+    )
+    if not success:
+        raise DashboardNotFoundError("Account not found", code="account_not_found")
+    return AccountBillingResponse(account_id=account_id, **payload.model_dump())
 
 
 @router.put("/{account_id}/alias", response_model=AccountAliasResponse)

@@ -1,0 +1,22 @@
+name: Publish pinned diagnostics image
+on:
+  push:
+    branches: [deploy/native-receive-diagnostics]
+permissions:
+  contents: read
+  packages: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Login to GHCR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: printf '%s' "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+      - name: Build and publish exact-baseline patch
+        run: |
+          image="ghcr.io/mhoo-os/codex-lb:diagnostics-${GITHUB_SHA}"
+          docker build --build-arg SOURCE_REVISION="$GITHUB_SHA" -f deploy/native-receive-diagnostics/Dockerfile -t "$image" .
+          docker push "$image"
+          docker inspect --format '{{json .RepoDigests}}' "$image"

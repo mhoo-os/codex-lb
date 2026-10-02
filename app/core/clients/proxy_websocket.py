@@ -419,6 +419,20 @@ class WebsocketsUpstreamWebSocket:
         return str(value)
 
 
+_NATIVE_RECEIVE_FAILURE_PHASES = frozenset(
+    {
+        "websocket_receive",
+        "liveness_timeout",
+        "consumer_backpressure",
+        "helper_exit",
+        "helper_read",
+        "helper_write",
+        "shutdown",
+        "cancelled",
+    }
+)
+
+
 class NativeUpstreamWebSocket:
     """Expose a native-helper WebSocket through the existing relay protocol."""
 
@@ -441,12 +455,22 @@ class NativeUpstreamWebSocket:
         try:
             message = await self._websocket.receive()
         except NativeEgressError as exc:
+            phase = (
+                (exc.failure_phase if exc.failure_phase in _NATIVE_RECEIVE_FAILURE_PHASES else "other")
+                if isinstance(exc, NativeEgressTransportError)
+                else "protocol"
+            )
+            logger.warning("native_websocket_receive_failed phase=%s", phase)
             error = _native_websocket_transport_error(exc, operation="receive")
             return UpstreamWebSocketMessage(
                 kind="error",
                 error=str(error),
                 error_code=_relay_receive_error_code(error.error_code),
             )
+        if message.kind == "close":
+            code = message.close_code
+            safe_code = code if type(code) is int and 1000 <= code <= 4999 else None
+            logger.info("native_websocket_closed code=%s", safe_code)
         return UpstreamWebSocketMessage(
             kind=message.kind,
             text=message.text,

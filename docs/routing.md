@@ -102,3 +102,18 @@ shows the LB-to-provider transport. `codex_lb_http_bridge_routing_total` separat
 `codex_lb_http_bridge_connections_total{event="reuse"}` measures actual connection
 reuse; admission counts are not successful-connection counts. Existing TTFT and
 queue latency metrics should be compared alongside reuse when measuring benefits.
+
+## Native WebSocket receive diagnostics
+
+The native adapter logs `native_websocket_receive_failed` with an allowlisted
+`phase`. Helper lifecycle failures, receive failures, consumer backpressure,
+and liveness timeouts remain distinguishable without exposing exception text.
+Unknown phases are logged as `other`; native protocol errors use `protocol`.
+`native_websocket_closed` logs only a bounded numeric close code, never the
+peer's close reason. These diagnostics do not change retry or routing policy
+and are not added to request-history rows. A `websocket_receive` category alone
+does not establish whether the remote endpoint or the network caused the failure.
+Correlate timestamps with existing stream lifecycle logs; these events do not
+identify an individual request when streams overlap.
+
+Owning spec: [Proxy runtime observability](https://github.com/Soju06/codex-lb/tree/main/openspec/specs/proxy-runtime-observability).

@@ -2044,5 +2044,12 @@
   "accounts.billing.column": "Billing",
   "accounts.billing.reviewShort": "Review cancellation",
   "accounts.billing.staleShort": "Verify dates",
-  "accounts.billing.useFirstShort": "Consider use first"
+  "accounts.billing.useFirstShort": "Consider use first",
+  "accounts.billing.manualTitle": "Manual reminders",
+  "accounts.billing.providerTitle": "Subscription active period",
+  "accounts.billing.providerChecked": "Provider last checked",
+  "accounts.billing.unavailable": "Unavailable",
+  "accounts.billing.providerMissing": "Subscription dates unavailable",
+  "accounts.billing.providerPast": "Past reported end date — verify with provider",
+  "accounts.billing.providerNote": "From saved sign-in data, in UTC. This is a provider-reported subscription period, not a confirmed invoice cycle or next charge date."
 }

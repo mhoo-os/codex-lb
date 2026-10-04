@@ -2044,5 +2044,12 @@
   "accounts.billing.column": "账单",
   "accounts.billing.reviewShort": "检查取消订阅",
   "accounts.billing.staleShort": "核实日期",
-  "accounts.billing.useFirstShort": "考虑优先使用"
+  "accounts.billing.useFirstShort": "考虑优先使用",
+  "accounts.billing.manualTitle": "手动提醒",
+  "accounts.billing.providerTitle": "订阅有效期间",
+  "accounts.billing.providerChecked": "提供商最后确认",
+  "accounts.billing.unavailable": "未知",
+  "accounts.billing.providerMissing": "订阅日期不可用",
+  "accounts.billing.providerPast": "已过所报告的结束日期 — 请向提供商核实",
+  "accounts.billing.providerNote": "来自保存的登录数据，使用 UTC。这是提供商报告的订阅期间，不代表已确认的账单周期或下次扣款日期。"
 }

@@ -366,12 +366,14 @@ it("shows billing dates on the dashboard and sorts unknown dates last", async ()
   const user = userEvent.setup();
   render(<AccountList accounts={[
     createAccountSummary({ accountId: "unknown", displayName: "Unknown Account" }),
+    createAccountSummary({ accountId: "provider", displayName: "Provider Account", subscription: { activeStart: "2026-09-01T00:00:00Z", activeUntil: "2026-10-05T00:00:00Z", lastChecked: null } }),
     createAccountSummary({ accountId: "later", displayName: "Later Account", billingRenewalDate: "2026-12-01" }),
     createAccountSummary({ accountId: "sooner", displayName: "Sooner Account", billingRenewalDate: "2026-11-01", billingCancelReviewDate: "2026-10-28" }),
   ]} />);
   expect(screen.getByText(/2026-10-28/)).toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "Billing" }));
   const rows = screen.getAllByTestId("account-list-row");
-  expect(rows[0]).toHaveTextContent("Sooner Account");
-  expect(rows[2]).toHaveTextContent("Unknown Account");
+  expect(rows[0]).toHaveTextContent("Provider Account");
+  expect(rows[1]).toHaveTextContent("Sooner Account");
+  expect(rows[3]).toHaveTextContent("Unknown Account");
 });

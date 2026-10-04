@@ -178,7 +178,7 @@ function compareAccountsBySort(a: AccountSummary, b: AccountSummary, sort: Accou
       break;
     case "billing": {
       const dateValue = (account: AccountSummary) => {
-        const dates = [account.billingRenewalDate, account.billingPaidThroughDate, account.billingCancelReviewDate]
+        const dates = [account.subscription?.activeUntil?.slice(0, 10), account.billingRenewalDate, account.billingPaidThroughDate, account.billingCancelReviewDate]
           .filter((date): date is string => !!date).sort();
         return dates.length ? Date.parse(dates[0]) : null;
       };

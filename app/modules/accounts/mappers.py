@@ -17,6 +17,7 @@ from app.modules.accounts.schemas import (
     AccountAuthStatus,
     AccountLimitWarmupStatus,
     AccountRequestUsage,
+    AccountSubscription,
     AccountSummary,
     AccountTokenStatus,
     AccountUsage,
@@ -262,6 +263,7 @@ def _account_to_summary(
         chatgpt_account_id=None if redact_identity else account.chatgpt_account_id,
         email=email,
         alias=account.alias,
+        subscription=_build_subscription(account, encryptor),
         billing_renewal_date=account.billing_renewal_date,
         billing_paid_through_date=account.billing_paid_through_date,
         billing_cancel_review_date=account.billing_cancel_review_date,
@@ -655,3 +657,23 @@ def _fill_scheduled_secondary_points(
         )
 
     return points
+
+
+def _build_subscription(account: Account, encryptor: TokenEncryptor) -> AccountSubscription | None:
+    token = _decrypt_token(encryptor, account.id_token_encrypted)
+    if not token:
+        return None
+    claims = extract_id_token_claims(token).auth
+    if claims is None:
+        return None
+    start = claims.chatgpt_subscription_active_start
+    until = claims.chatgpt_subscription_active_until
+    if start is not None and until is not None and start > until:
+        return None
+    if start is None and until is None:
+        return None
+    return AccountSubscription(
+        active_start=start,
+        active_until=until,
+        last_checked=claims.chatgpt_subscription_last_checked,
+    )

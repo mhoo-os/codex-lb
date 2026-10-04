@@ -2044,5 +2044,12 @@
   "accounts.billing.column": "결제",
   "accounts.billing.reviewShort": "해지 검토",
   "accounts.billing.staleShort": "날짜 확인",
-  "accounts.billing.useFirstShort": "우선 사용 고려"
+  "accounts.billing.useFirstShort": "우선 사용 고려",
+  "accounts.billing.manualTitle": "수동 알림",
+  "accounts.billing.providerTitle": "구독 활성 기간",
+  "accounts.billing.providerChecked": "제공업체 최종 확인",
+  "accounts.billing.unavailable": "확인 불가",
+  "accounts.billing.providerMissing": "구독 날짜 확인 불가",
+  "accounts.billing.providerPast": "보고된 종료일 경과 — 제공업체에서 확인하세요",
+  "accounts.billing.providerNote": "저장된 로그인 데이터의 UTC 날짜입니다. 제공업체가 보고한 구독 기간이며 청구 주기나 다음 결제일이 확정된 것은 아닙니다."
 }

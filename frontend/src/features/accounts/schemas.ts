@@ -73,6 +73,11 @@ export const AccountBillingSchema = z.object({
 export type AccountBilling = z.infer<typeof AccountBillingSchema>;
 
 export const AccountSummarySchema = z.object({
+  subscription: z.object({
+    activeStart: z.iso.datetime({ offset: true }).nullable(),
+    activeUntil: z.iso.datetime({ offset: true }).nullable(),
+    lastChecked: z.iso.datetime({ offset: true }).nullable(),
+  }).nullable().optional(),
   accountId: z.string(),
   chatgptAccountId: z.string().nullable().optional(),
   email: z.string(),

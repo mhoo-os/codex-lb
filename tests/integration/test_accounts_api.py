@@ -747,6 +747,7 @@ async def test_billing_dates_persist_clear_and_preserve_account(async_client):
     assert account["routingPolicy"] == "preserve"
     async with SessionLocal() as session:
         stored = await session.get(Account, "billing-test")
+        assert stored is not None
         assert stored.access_token_encrypted == b"access"
     for invalid in ("2026-02-30", "2026-10-31T00:00:00Z", 1793404800, "", "10/31/2026"):
         response = await async_client.put(
@@ -762,7 +763,95 @@ async def test_billing_dates_persist_clear_and_preserve_account(async_client):
     assert response.status_code == 404
     async with SessionLocal() as session:
         stored = await session.get(Account, "billing-test")
+        assert stored is not None
         stored.delete_requested_at = datetime(2026, 10, 2)
         await session.commit()
     response = await async_client.put("/api/accounts/billing-test/billing", json=dates)
     assert response.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_subscription_snapshot_is_account_specific_and_read_only(async_client):
+    encryptor = TokenEncryptor()
+    async with SessionLocal() as session:
+        for index, end in enumerate(["2026-10-05T04:37:28+00:00", "2026-10-24T20:32:25+00:00"]):
+            token = _encode_jwt(
+                {
+                    "https://api.openai.com/auth": {
+                        "chatgpt_plan_type": "plus",
+                        "chatgpt_subscription_active_start": "2026-09-24T20:32:25+00:00",
+                        "chatgpt_subscription_active_until": end,
+                        "chatgpt_subscription_last_checked": "2026-09-24T20:34:43+00:00",
+                    }
+                }
+            )
+            session.add(
+                Account(
+                    id=f"subscription-{index}",
+                    email=f"{index}@example.com",
+                    plan_type="plus",
+                    access_token_encrypted=encryptor.encrypt("access"),
+                    refresh_token_encrypted=encryptor.encrypt("refresh"),
+                    id_token_encrypted=encryptor.encrypt(token),
+                    last_refresh=datetime(2026, 10, 3),
+                    status=AccountStatus.ACTIVE,
+                )
+            )
+        await session.commit()
+    response = await async_client.get("/api/accounts")
+    assert response.status_code == 200
+    accounts = {a["accountId"]: a for a in response.json()["accounts"]}
+    assert accounts["subscription-0"]["subscription"]["activeUntil"] == "2026-10-05T04:37:28Z"
+    assert accounts["subscription-1"]["subscription"]["activeUntil"] == "2026-10-24T20:32:25Z"
+    assert accounts["subscription-0"]["subscription"]["lastChecked"] == "2026-09-24T20:34:43Z"
+    dates = {"billingRenewalDate": "2026-11-01", "billingPaidThroughDate": None, "billingCancelReviewDate": None}
+    assert (await async_client.put("/api/accounts/subscription-0/billing", json=dates)).status_code == 200
+    response = await async_client.get("/api/accounts")
+    account = next(a for a in response.json()["accounts"] if a["accountId"] == "subscription-0")
+    assert account["billingRenewalDate"] == "2026-11-01"
+    assert account["subscription"] == accounts["subscription-0"]["subscription"]
+    assert "accessToken" not in response.text
+    assert "refreshToken" not in response.text
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "start,end",
+    [
+        (None, None),
+        ("garbage", 123),
+        ("2026-10-01", "2026-10-31"),
+        ("2026-11-01T00:00:00Z", "2026-10-01T00:00:00Z"),
+    ],
+)
+async def test_subscription_invalid_metadata_does_not_break_account_listing(async_client, start, end):
+    encryptor = TokenEncryptor()
+    token = _encode_jwt(
+        {
+            "https://api.openai.com/auth": {
+                "chatgpt_plan_type": "plus",
+                "chatgpt_subscription_active_start": start,
+                "chatgpt_subscription_active_until": end,
+            }
+        }
+    )
+    async with SessionLocal() as session:
+        session.add(
+            Account(
+                id="invalid-subscription",
+                email="valid@example.com",
+                plan_type="plus",
+                access_token_encrypted=encryptor.encrypt("access"),
+                refresh_token_encrypted=encryptor.encrypt("refresh"),
+                id_token_encrypted=encryptor.encrypt(token),
+                last_refresh=datetime(2026, 10, 3),
+                status=AccountStatus.ACTIVE,
+            )
+        )
+        await session.commit()
+    response = await async_client.get("/api/accounts")
+    assert response.status_code == 200
+    account = next(a for a in response.json()["accounts"] if a["accountId"] == "invalid-subscription")
+    assert account["subscription"] is None
+    assert account["email"] == "valid@example.com"
+    assert account["planType"] == "plus"

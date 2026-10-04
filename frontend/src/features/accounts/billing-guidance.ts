@@ -15,3 +15,8 @@ export function billingGuidance(account: AccountSummary, now = new Date()) {
   const review = !!account.billingCancelReviewDate && account.billingCancelReviewDate <= today;
   return { review, stale, useFirst };
 }
+
+export function subscriptionSnapshotIsPast(account: AccountSummary, now = new Date()) {
+  const until = account.subscription?.activeUntil;
+  return !!until && new Date(until).getTime() < now.getTime();
+}

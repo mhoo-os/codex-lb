@@ -100,7 +100,14 @@ class AccountBillingResponse(DashboardModel):
     billing_cancel_review_date: date | None
 
 
+class AccountSubscription(DashboardModel):
+    active_start: datetime | None = None
+    active_until: datetime | None = None
+    last_checked: datetime | None = None
+
+
 class AccountSummary(DashboardModel):
+    subscription: AccountSubscription | None = None
     account_id: str
     chatgpt_account_id: str | None = None
     email: str

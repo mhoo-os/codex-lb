@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from uuid import uuid4
 
-from pydantic import AliasChoices, BaseModel, ConfigDict, Field
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
 
 DEFAULT_EMAIL = "unknown@example.com"
 DEFAULT_PLAN = "unknown"
@@ -48,6 +48,28 @@ class OpenAIAuthClaims(BaseModel):
         ),
     )
     chatgpt_plan_type: str | None = None
+    chatgpt_subscription_active_start: datetime | None = None
+    chatgpt_subscription_active_until: datetime | None = None
+    chatgpt_subscription_last_checked: datetime | None = None
+
+    @field_validator(
+        "chatgpt_subscription_active_start",
+        "chatgpt_subscription_active_until",
+        "chatgpt_subscription_last_checked",
+        mode="before",
+    )
+    @classmethod
+    def parse_subscription_timestamp(cls, value: str | datetime | None) -> datetime | None:
+        # Optional provider metadata must never invalidate identity claims.
+        if isinstance(value, str):
+            try:
+                value = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            except ValueError:
+                return None
+        if not isinstance(value, datetime) or value.tzinfo is None or value.utcoffset() is None:
+            return None
+        return value
+
     workspace_id: str | None = Field(
         default=None,
         validation_alias=AliasChoices(

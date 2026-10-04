@@ -1,3 +1,4 @@
+import { AccountSubscriptionPeriod } from "./account-subscription-period";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { billingGuidance } from "@/features/accounts/billing-guidance";
@@ -53,6 +54,8 @@ export function AccountBillingPanel({ account, busy, readOnly, onSave }: {
         setEditing(true);
       }}>{t("accounts.billing.edit")}</Button> : null}
     </div>
+    <AccountSubscriptionPeriod account={account} />
+    <h4 className="text-xs font-medium">{t("accounts.billing.manualTitle")}</h4>
     <p className="text-xs text-muted-foreground">{t("accounts.billing.manual")}</p>
     {editing ? <form className="space-y-3" onSubmit={(event) => { event.preventDefault(); void save(); }}>
       {fields.map(([key, label]) => <label key={key} className="block space-y-1 text-xs">
